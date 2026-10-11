@@ -1,0 +1,14 @@
+<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>STAR CREDIT BGM確認</title>
+<style>body{background:#081224;color:#e8f0ff;font:16px system-ui;padding:16px}button,select{font:inherit;min-height:44px;margin:4px}label{display:block;margin:8px}pre{white-space:pre-wrap}</style>
+<h1>軽量BGM確認</h1><p>ゲームと独立・保存はメモリのみ。実聴による音質とループの確認にも使用できます。</p><button id="unlock">音声を有効化</button><div id="buttons"></div><label>BGM選曲 <select aria-label="BGM選曲"><option>AUTO</option><option>MANUAL</option><option>OFF</option></select></label><label>固定BGM <select aria-label="固定BGM"></select></label><button id="mute">BGMミュート</button><pre id="status"></pre>
+<script type="module">
+import {createAudioManager} from '/src/audio/audioManager.js';
+const a=createAudioManager({debug:true}),out=document.querySelector('#status');
+function show(){out.textContent=JSON.stringify({settings:a.settings,...a.status},null,2);}
+for(const [key,label] of Object.entries({title:'タイトル',battle:'通常戦闘',boss:'ボス',endless:'エンドレス後半',equipment:'装備',shop:'強化',settings:'設定',paused:'ポーズ',hidden:'非表示相当',over:'ゲームオーバー'})){const b=document.createElement('button');b.textContent=label;b.onclick=()=>{a.playUi();a.setScene(key);show();};document.querySelector('#buttons').append(b);}
+const mode=document.querySelector('[aria-label="BGM選曲"]'),track=document.querySelector('[aria-label="固定BGM"]');
+for(const [key,item] of Object.entries(a.tracks)){const o=document.createElement('option');o.value=key;o.textContent=item.name;track.append(o);}track.value=a.settings.bgmTrack;
+mode.onchange=()=>{a.setSettings({bgmMode:mode.value});show();};track.onchange=()=>{a.setSettings({bgmTrack:track.value});show();};document.querySelector('#mute').onclick=()=>{a.setSettings({bgmMute:!a.settings.bgmMute});show();};
+document.querySelector('#unlock').onclick=async()=>{await a.unlock();show();};document.addEventListener('visibilitychange',()=>{if(document.hidden)a.setScene('hidden');show();});window.addEventListener('pagehide',()=>a.setScene('hidden'));
+setInterval(()=>{a.tick();show();},100);show();
+</script></html>

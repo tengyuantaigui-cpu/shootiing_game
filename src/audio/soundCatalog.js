@@ -1,0 +1,3 @@
+// Original temporary synthesized music; no external recordings or samples.
+export const TRACKS={title:{step:.22,notes:[60,67,72,67,63,70,75,70]},battle:{step:.13,notes:[48,60,67,72,48,63,70,75,50,62,69,74,55,67,74,79]},boss:{step:.12,notes:[36,48,55,60,36,49,56,61,38,50,57,62,37,49,56,61]},clear:{step:.18,notes:[60,64,67,72,76,79,84],once:true},over:{step:.24,notes:[60,57,53,48,41],once:true}};
+export const SOUNDS={shot:[880,.04,'square'],hit:[240,.05,'triangle'],explosion:[110,.18,'sawtooth'],large:[65,.4,'sawtooth'],collect:[1300,.09,'sine'],purchase:[1700,.12,'triangle'],denied:[120,.1,'square'],hurt:[150,.22,'sawtooth'],warning:[420,.35,'square'],move:[700,.035,'sine'],confirm:[1050,.06,'triangle'],beamStart:[600,.08,'triangle'],beamEnd:[200,.06,'triangle']};

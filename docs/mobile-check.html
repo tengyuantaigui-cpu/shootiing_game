@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>スマホ表示の模擬確認（実機ではありません）</title><link rel="stylesheet" href="/src/style.css"></head>
+<body><main><header><span class="eyebrow">VERTICAL FLIGHT / 01</span><h1>STAR<span> CREDIT</span></h1><p>回収して、強化して、星域を突破する。</p></header><section class="cabinet"><div id="hud"></div><div class="viewport"><canvas id="game" width="480" height="800" aria-label="縦スクロールシューティングの戦闘画面"></canvas><div id="overlay"></div></div><footer><span id="movement-help">WASD / 矢印：移動</span><button id="weapon">SPACE：武器</button><button id="upgrade">U：強化</button><button id="pause">ESC：停止</button></footer></section><p class="note">1 STAGE · 3 WAVES · BOSS ENCOUNTER</p></main><script type="module">
+// Desktop browser cannot emulate a coarse pointer: apply the same mobile rules
+// at the chosen width. This fixture does not claim iOS/Safari touch validation.
+const css=await (await fetch('/src/style.css')).text();const style=document.createElement('style');style.textContent=css.replace('@media(max-width:600px) and (pointer:coarse)','@media(max-width:600px)');document.head.append(style);
+let source=await (await fetch('/src/main.js')).text();source=source.replace(/from '\.\/(.*?)'/g,(_,file)=>`from '${new URL('/src/'+file,location.href).href}'`);
+source=source.replace("window.matchMedia?.('(pointer:coarse)')?.matches??false",'true');source=source.replace('storage=localStorage;','storage={getItem:()=>null,setItem(){}};');
+source=source.replace('menu();requestAnimationFrame(frame);',"start('endless');run.inventory.acquire('charge');selectAttack(run,'charge');draw();requestAnimationFrame(frame);");const url=URL.createObjectURL(new Blob([source],{type:'text/javascript'}));await import(url);URL.revokeObjectURL(url);
+</script></body></html>

@@ -2,11 +2,12 @@
 // 本番ゲームには接続しない。固定状態による描画・メニュー比較用。
 const query=new URLSearchParams(location.search),baseline=query.get('version')!=='current';
 const base=baseline?'/docs/baseline/':'/src/';
+document.querySelector('link[rel=stylesheet]').href=base+'style.css';
 let source=await (await fetch(base+'main.js')).text();
-source=source.replace(/from '\.\/(.*?)'/g,(_,file)=>`from '${base}${file}'`);
+source=source.replace(/from '\.\/(.*?)'/g,(_,file)=>`from '${new URL(base+file,location.href).href}'`);
 const scene=query.get('scene')||'title';
 const setup=`run=newRun();run.time=125;run.credits=175;run.score=450;run.collected=275;run.kills=18;run.player.inv=0;run.enemies=[{...C.enemies[0],id:101,type:0,x:100,y:220,hp:2},{...C.enemies[1],id:102,type:1,x:300,y:300,hp:4},{...C.enemies[2],id:103,type:2,x:180,y:420,hp:15}];run.bullets=[{id:104,x:240,y:520}];run.hostiles=[{id:105,x:300,y:540,r:5}];run.items=[{id:106,x:160,y:580,value:25}];`;
-const scenes={title:"state='title';",shop:"state='shop';",battle:"state='playing';",boss:"state='playing';run.time=190;run.bossSpawned=true;run.enemies=[{...C.enemies[3],id:107,type:3,x:240,y:110,hp:120}];",result:"state='result';run.clear=true;run.score=1450;"};
+const scenes={title:"state='title';",shop:"state='shop';",battle:"state='playing';",boss:"state='playing';run.time=190;run.bossSpawned=true;run.enemies=[{...C.enemies[3],id:107,type:3,x:240,y:110,hp:120}];",result:"state='result';run.clear=true;run.score=1450;",'phase2':"state='playing';run.bossSpawned=true;visuals.emit('explosion',180,420,'#ffbf73');visuals.emit('collect',160,580);visuals.update(.08,run);",'challenge-boss':"enableChallenge(run);state='playing';run.time=100;run.bossSpawned=true;run.enemies=[{...C.enemies[3],id:107,type:3,variant:'boss',name:'CORE GUARDIAN',maxHp:240,hp:80,x:240,y:110,phase:3,warning:.5,aimAngle:0}];"};
 source=source.replace('menu();requestAnimationFrame(frame);',setup+(scenes[scene]||scenes.title)+'menu();draw();');
 const url=URL.createObjectURL(new Blob([source],{type:'text/javascript'}));await import(url);URL.revokeObjectURL(url);
 </script></body></html>

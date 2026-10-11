@@ -1,0 +1,16 @@
+import {cycleAttack} from './equipment.js';
+import {WEAPON_CATALOG,weaponMultiplier} from './weaponCatalog.js';
+import {allowsExtra,modeFor,initializeExtra} from './modes.js';
+import {id} from '../model.js';
+export const EXTRA_WEAPONS={off:{name:'装備OFF'},spread:{name:'拡散弾',interval:.6,damage:1,speed:480},piercing:{name:'貫通弾',interval:.8,damage:2,speed:540,pierces:3},missile:{name:'追尾ミサイル',interval:1,damage:4,speed:260},charge:{name:'チャージ',damage:12,speed:440,seconds:1.2}};
+export function cycleExtra(run){if(run.inventory)return cycleAttack(run,modeFor(run).availableWeapons.filter(w=>WEAPON_CATALOG[w].slot==='extra'));if(!allowsExtra(run))return;if(!run.extraProjectiles)initializeExtra(run,'off');const types=['off',...modeFor(run).availableWeapons.filter(w=>w!=='bullet'&&w!=='beam'&&(!run.inventory||run.inventory.data.weapons[w]))];run.extra=types[(types.indexOf(run.extra)+1)%types.length];run.extraShot=0;run.charge=0;run.charging=false;run.inventory?.equip(run.extra);}
+export function createProjectile(run,kind,angle=0,damage=EXTRA_WEAPONS[kind].damage){const spec=EXTRA_WEAPONS[kind];return {id:id(),kind,x:run.player.x,y:run.player.y-25,vx:Math.sin(angle)*spec.speed,vy:-Math.cos(angle)*spec.speed,speed:spec.speed,damage:damage*weaponMultiplier(run,kind),r:kind==='charge'?8:4,life:3,remaining:spec.pierces??1,hits:[],target:null};}
+export function fireExtra(run,dt,keys,onShot=()=>{}){
+ if(!allowsExtra(run)||!run.extraProjectiles)return;
+ const kind=run.extra;if(kind==='off'||(run.inventory&&!run.inventory.data.weapons[kind]))return;
+ if(kind==='charge'){const held=keys.has('KeyF');if(held){run.charge=Math.min(EXTRA_WEAPONS.charge.seconds,run.charge+dt);run.charging=true;}else if(run.charging){const fraction=run.charge/EXTRA_WEAPONS.charge.seconds;run.extraProjectiles.push(createProjectile(run,'charge',0,Math.max(1,EXTRA_WEAPONS.charge.damage*fraction)));run.charge=0;run.charging=false;onShot();}return;}
+ run.extraShot-=dt;if(run.extraShot>0)return;run.extraShot=EXTRA_WEAPONS[kind].interval;
+ const angles=kind==='spread'?[-.3,0,.3]:[0];for(const angle of angles)run.extraProjectiles.push(createProjectile(run,kind,angle));onShot();
+}
+export function moveExtra(run,dt){for(const b of run.extraProjectiles??[]){b.life-=dt;if(b.kind==='missile'){let target=run.enemies.find(e=>e.id===b.target&&!e.dead&&e.hp>0&&e.y+e.r>0);if(!target){target=run.enemies.filter(e=>!e.dead&&e.hp>0&&e.y+e.r>0).sort((a,c)=>Math.hypot(a.x-b.x,a.y-b.y)-Math.hypot(c.x-b.x,c.y-b.y))[0];b.target=target?.id??null;}if(target){const dx=target.x-b.x,dy=target.y-b.y,len=Math.hypot(dx,dy)||1;const blend=Math.min(1,dt*4);b.vx+=(dx/len*b.speed-b.vx)*blend;b.vy+=(dy/len*b.speed-b.vy)*blend;const speed=Math.hypot(b.vx,b.vy)||1;b.vx=b.vx/speed*b.speed;b.vy=b.vy/speed*b.speed;}}b.x+=b.vx*dt;b.y+=b.vy*dt;}}
+export function hitExtra(run,applyDamage){for(const b of run.extraProjectiles??[]){if(b.dead)continue;for(const e of run.enemies){if(e.dead||e.hp<=0||b.hits.includes(e.id))continue;if(Math.hypot(e.x-b.x,e.y-b.y)<e.r+b.r){applyDamage(e,b.damage);b.hits.push(e.id);if(--b.remaining<=0){b.dead=true;break;}}}}if(run.extraProjectiles)run.extraProjectiles=run.extraProjectiles.filter(b=>!b.dead&&b.life>0&&b.x>-30&&b.x<510&&b.y>-40&&b.y<840);}

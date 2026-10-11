@@ -1,0 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createVisuals,loadVisualSettings} from '../src/rendering/particles.js';
+import {drawHud} from '../src/rendering/hud.js';
+import {newRun} from '../src/model.js';
+const ctx=new Proxy({},{get:()=>()=>{}});
+test('演出はモデルを変更せず、描画だけでは時間も粒子も進まない',()=>{const v=createVisuals(),r=Object.freeze({...newRun(),bossSpawned:true});v.emit('explosion',100,100);v.update(.1,r);const before=JSON.stringify(v.snapshot);v.draw(ctx);v.draw(ctx);assert.equal(JSON.stringify(v.snapshot),before);assert.equal(v.snapshot.clock,.1);assert.ok(v.snapshot.warningUntil>.1);});
+test('粒子寿命・上限・演出OFF・再開始のリセット',()=>{const v=createVisuals(),r=newRun();for(let i=0;i<200;i++)v.emit('explosion',10,10);assert.ok(v.snapshot.particles.length<=100);v.update(1,r);assert.equal(v.snapshot.particles.length,0);v.setSettings({intensity:0});v.emit('hurt',10,10);assert.equal(v.snapshot.particles.length,0);v.emit('collect',10,10);assert.equal(v.snapshot.notifications.length,1);v.reset();assert.equal(v.snapshot.clock,0);assert.equal(v.snapshot.notifications.length,0);});
+test('振動・フラッシュ・CRTは初期OFF、保存破損時は安全な既定値',()=>{const s=loadVisualSettings({getItem:()=>'{'});assert.equal(s.shake,false);assert.equal(s.flash,false);assert.equal(s.crt,false);assert.equal(loadVisualSettings({getItem(){throw Error();}}).intensity,.35);assert.equal(loadVisualSettings({getItem:()=>JSON.stringify({version:1,intensity:8,shake:'yes'})}).shake,false);});
+test('HUDは内部HP・残高・スコア・武器性能・チャレンジ進行を表示',()=>{const r=newRun(),hud={};r.credits=123;r.score=456;r.player.hp=2;r.weapon='beam';r.levels.beamPower=2;r.levels.beamWidth=1;r.mode='challenge';r.time=65;drawHud(ctx,r,hud);for(const expected of ['HP ♥♥♡','◇ 123','SCORE 456','ビーム 9/秒 / 18px','01:05','WAVE 3','CHALLENGE'])assert.ok(hud.innerHTML.includes(expected));});
+test('ボスHPバーは既存HP180と新ボス最大HP240の両方に追従',()=>{for(const maxHp of [180,240]){const r=newRun(),bars=[];r.enemies=[{type:3,hp:maxHp/2,maxHp,variant:maxHp===240?'boss':undefined,phase:2}];const painter={fillRect:(...args)=>bars.push(args),fillText(){}};drawHud(painter,r,{});assert.equal(bars[1][2],210);}});
+test('HUDは同じ表示値でDOMを交換せず、HP・秒・残高変更時に更新する',()=>{const run=newRun();let markup='',writes=0;const hud={get innerHTML(){return markup;},set innerHTML(value){markup=value;writes++;}};drawHud(ctx,run,hud);for(let n=0;n<60;n++){run.time=n/120;drawHud(ctx,run,hud);}assert.equal(writes,1);run.time=1;drawHud(ctx,run,hud);run.player.hp--;drawHud(ctx,run,hud);run.credits=10;drawHud(ctx,run,hud);assert.equal(writes,4);});

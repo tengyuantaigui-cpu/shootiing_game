@@ -1,1 +1,12 @@
-{"name":"star-credit","version":"1.0.0","private":true,"type":"module","scripts":{"dev":"node server.js","start":"node server.js","test":"node --test"}}
+{
+  "name": "star-credit",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "test": "node --test",
+    "build": "node tools/prepare-publication.mjs"
+  }
+}
