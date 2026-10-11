@@ -1,17 +1,17 @@
 {
-  "id": "/",
+  "id": "./",
   "name": "STAR CREDIT",
   "short_name": "STAR CREDIT",
   "description": "回収して、強化して、星域を突破する縦スクロールシューティング。",
   "lang": "ja",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#081224",
   "theme_color": "#081224",
   "icons": [
-    { "src": "/src/assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/src/assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "./src/assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "./src/assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ]
 }

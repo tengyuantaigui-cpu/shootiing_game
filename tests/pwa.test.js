@@ -15,9 +15,9 @@ test('PWAはルートからstandalone・縦向きで起動し、iPhoneメタタ�
   const manifest = JSON.parse(await read('manifest.webmanifest'));
   const html = (await read('index.html')).toString();
   assert.equal(manifest.name,'STAR CREDIT');
-  assert.equal(manifest.id,'/'); assert.equal(manifest.scope,'/'); assert.equal(manifest.start_url,'/');
+  assert.equal(manifest.id,'./'); assert.equal(manifest.scope,'./'); assert.equal(manifest.start_url,'./');
   assert.equal(manifest.display,'standalone'); assert.equal(manifest.orientation,'portrait');
-  assert.match(html,/rel="manifest" href="\/manifest.webmanifest"/);
+  assert.match(html,/rel="manifest" href="\.\/manifest.webmanifest"/);
   assert.match(html,/name="apple-mobile-web-app-capable" content="yes"/);
   assert.match(html,/name="apple-mobile-web-app-title" content="STAR CREDIT"/);
   assert.match(html,/viewport-fit=cover/);
@@ -30,7 +30,7 @@ test('ホーム画面用PNGは宣言寸法と一致し、不透明な背景とma
   const manifest=JSON.parse(await read('manifest.webmanifest'));
   const icons=[...manifest.icons,{src:'/src/assets/icons/apple-touch-icon.png',sizes:'180x180'}];
   for (const icon of icons) {
-    const png=await read(icon.src.slice(1));
+    const png=await read(icon.src.replace(/^\.\//,''));
     assert.equal(png.subarray(0,8).toString('hex'),'89504e470d0a1a0a');
     const width=png.readUInt32BE(16),height=png.readUInt32BE(20);
     assert.equal(`${width}x${height}`,icon.sizes); assert.equal(png[25],6);
@@ -59,7 +59,7 @@ test('HTTPS公開用パッケージは実行資産だけを含み、ゲーム・
   const output=await mkdtemp(path.join(tmpdir(),'star-credit-pwa-'));
   try {
     await preparePublication(output);
-    assert.deepEqual((await readdir(output)).sort(),['_headers','index.html','manifest.webmanifest','src']);
+    assert.deepEqual((await readdir(output)).sort(),['.nojekyll','_headers','index.html','manifest.webmanifest','src','sw.js']);
     async function compare(directory='src') {
       for(const entry of await readdir(path.join(root,directory),{withFileTypes:true})) {
         const name=path.join(directory,entry.name);
@@ -86,3 +86,9 @@ test('開発サーバーはmanifestとアイコンを正しいContent-Typeで返
   }
 });
 test('公開用キャッシュ方針は同名のJS・音源も再検証対象にする',async()=>{const headers=(await read('_headers')).toString();assert.match(headers,/\/\*\s+Cache-Control: no-cache/);});
+
+test('Pagesのリポジトリ配下でもHTML・manifest・音源のURLが同じscopeに解決する',async()=>{const base=new URL('https://example.github.io/shootiing_game/');const html=(await read('index.html')).toString();for(const match of html.matchAll(/(?:href|src)="([^"]+)"/g)){const url=new URL(match[1],base);assert.ok(url.pathname.startsWith(base.pathname));assert.ok((await read(url.pathname.slice(base.pathname.length))).length>0);}const m=JSON.parse(await read('manifest.webmanifest'));assert.equal(new URL(m.scope,new URL('manifest.webmanifest',base)).pathname,base.pathname);for(const icon of m.icons)assert.ok((await read(new URL(icon.src,base).pathname.slice(base.pathname.length))).length>0);const {BGM_TRACKS}=await import('../src/audio/bgmCatalog.js');for(const item of Object.values(BGM_TRACKS))assert.ok(item.url.endsWith('.m4a'));});
+
+test('Service Workerは自scopeのみ再検証し、外部通信・POST・保存を変更しない',async()=>{const events={};let fetched;vm.runInNewContext((await read('sw.js')).toString(),{self:{registration:{scope:'https://example.github.io/shootiing_game/'},addEventListener:(name,fn)=>events[name]=fn},URL,Request,fetch:request=>{fetched=request;return Promise.resolve({ok:true});}});let response;events.fetch({request:new Request('https://example.github.io/shootiing_game/src/main.js'),respondWith:p=>response=p});await response;assert.equal(fetched.cache,'no-cache');for(const url of ['https://example.github.io/other/main.js','https://other.example/audio.m4a'])events.fetch({request:new Request(url),respondWith:()=>assert.fail('scope外')});events.fetch({request:new Request('https://example.github.io/shootiing_game/',{method:'POST'}),respondWith:()=>assert.fail('POST')});assert.equal(events.activate,undefined);});
+
+test('公開SWに資産内容の更新識別子が付き、自動デプロイはテスト後に実行する',async()=>{const output=await mkdtemp(path.join(tmpdir(),'star-pages-'));try{await preparePublication(output);const sw=await readFile(path.join(output,'sw.js'),'utf8');assert.match(sw,/Build: [a-f0-9]{64}/);const workflow=(await read('.github/workflows/pages.yml')).toString();assert.ok(workflow.indexOf('npm test')<workflow.indexOf('npm run build'));assert.match(workflow,/actions\/deploy-pages@v4/);assert.match(workflow,/steps.source.outputs.directory.*\/dist/);assert.match(workflow,/shooting_game\/package.json/);}finally{await rm(output,{recursive:true,force:true});}});

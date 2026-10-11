@@ -93,7 +93,7 @@ npm test
 
 静的ホスティングの公開ディレクトリを `dist/` に設定し、有効な証明書のあるHTTPSドメインのルート `/` に配置してください。依存パッケージのインストールは不要です。NodeがPATHにない環境では、上記のNode絶対パスで `tools/prepare-publication.mjs` と `--test` を実行できます。
 
-公開物は `index.html`・`manifest.webmanifest`・`src/` だけです。リポジトリ全体や開発用 `server.js` を公開する必要はありません。サブディレクトリ公開は現状の絶対パスとmanifestのscopeに対応していません。公開先で `.webmanifest` は `application/manifest+json`、`.png` は `image/png`、`.js` はJavaScriptのContent-Typeで返してください。すべて同じHTTPSサイトから読み込み、HTML／manifestは再検証されるキャッシュ設定を推奨します。
+公開物は `index.html`・`manifest.webmanifest`・`src/`・`sw.js`・`.nojekyll`・`_headers` です。リポジトリ全体や開発用 `server.js` を公開する必要はありません。相対パスのためリポジトリ配下のサブディレクトリ公開にも対応します。公開先で `.webmanifest` は `application/manifest+json`、`.png` は `image/png`、`.js` はJavaScriptのContent-Typeで返してください。すべて同じHTTPSサイトから読み込み、HTML／manifestは再検証されるキャッシュ設定を推奨します。
 
 `npm run dev` は引き続きHTTPの開発確認用です。サーバーを再起動するとmanifest／PNGのContent-Type変更が反映されます。HTTPS公開・証明書・実際の公開URLはまだ未確認です。
 
@@ -159,4 +159,32 @@ BGM・スマホボタン修正：装備・強化はBGMを半音量、ポーズ�
 
 ### Phase 6 品質改善
 
-`npm test` は129件成功・失敗0件。HUDの不要なDOM交換を抑制し、長いメニューのスクロールとキー設定SEを修正しました。[QA報告](docs/phase6-qa-report.md) と [iPhone実機チェックリスト](docs/phase6-iphone-checklist.md) を参照してください。公開ビルドには `_headers` も含み、対応ホストで全資産を `Cache-Control: no-cache` に設定します。対応しないホストでは同等のヘッダーを手動設定してください。Service Worker・オフライン起動は未実装です。HTTPS公開先とiPhone実機での起動・更新・保存を検証するまで、リリース完了とは扱いません。
+`npm test` は129件成功・失敗0件。HUDの不要なDOM交換を抑制し、長いメニューのスクロールとキー設定SEを修正しました。[QA報告](docs/phase6-qa-report.md) と [iPhone実機チェックリスト](docs/phase6-iphone-checklist.md) を参照してください。公開ビルドには `_headers` も含み、対応ホストで全資産を `Cache-Control: no-cache` に設定します。対応しないホストでは同等のヘッダーを手動設定してください。GitHub Pages対応によりネットワーク再検証用Service Workerを追加しました。オフライン起動は未対応です。HTTPS公開先とiPhone実機での起動・更新・保存を検証するまで、リリース完了とは扱いません。
+
+
+### GitHub Pagesで遊ぶ・公開する
+
+公開予定URL：[STAR CREDIT](https://tengyuantaigui-cpu.github.io/shootiing_game/)。2026-10-11のブラウザ確認では **404（未公開）** です。対応リポジトリは [tengyuantaigui-cpu/shootiing_game](https://github.com/tengyuantaigui-cpu/shootiing_game)、既定ブランチはmain、現在のゲームは `shooting_game/` 配下にあります。workflowはルートとこの下位フォルダを自動判定します。`.github/workflows/pages.yml` は必ずリポジトリのルートに配置し、ゲーム側の変更は現在の `shooting_game/` 配下へ反映してください。PagesのSourceをGitHub Actionsへ設定し、デプロイが成功するとこのURLで遊べます。
+
+GitHub認証がないため、ここからのpush・Pages設定変更・デプロイは未実施です。ローカルremoteも未登録です。
+
+1. GitHubに公開用リポジトリを用意し、ソースと `.github/workflows/pages.yml` を反映します。公開するファイルの範囲を確認してください。Actionsの配信物には開発資料・テスト・Git情報を含みませんが、公開リポジトリ内の資料自体は閲覧可能です。
+2. リポジトリの Settings → Pages → Source を **GitHub Actions** に設定します。
+3. `main` または `master` へのpushでテスト→ビルド→デプロイが動きます。別の既定ブランチの場合はworkflowの `branches` を合わせるか、Actionsから手動実行します。
+4. Actions成功後の公開URLをPC／スマホで開きます。最初のタップで音声を有効化し、CLASSIC／ENDLESS／チャレンジを選択します。
+5. PCはWASD／矢印で移動、Spaceで取得済み基本攻撃、Qで追加攻撃、F保持でチャージ、Uで強化、Escでポーズ。スマホは相対ドラッグと画面の装備／強化／設定／PAUSE、取得済みCHARGEで操作します。
+6. iPhoneはSafariの共有 → ホーム画面に追加。同じHTTPS URL配下のmanifest・アイコン・standalone設定でアプリ風に起動します。初回タップによる音声有効化は必要です。
+
+Service Workerは同一プロジェクト配下のGETをネットワーク再検証し、オフライン資産をキャッシュしません。新workerはプレイ中に強制適用せず、古い画面を閉じて再起動すると適用されます。GitHub Pagesは `_headers` を解釈しないため、それだけに更新を依存しません。ビルド時に資産ハッシュをworkerへ付与し、登録時の `updateViaCache: none` で更新を確認します。
+
+localhostからGitHub Pagesへの移動は別originなので、ブラウザ保存は自動移行されません。旧セーブの形式・キーは変更していません。同一公開origin内では従来通り保存します。Safariとホーム画面PWA間のデータ引継ぎも実機確認が必要です。
+
+`npm test`：132件成功・失敗0。`npm run build`成功。サブディレクトリのHTML・JS・画像・音源URLとworkerのscope・更新識別子を自動検証し、ローカル `/dist/index.html` でタイトルと音声有効化を確認しました。実GitHub Actions実行・HTTPS公開・iPhone実機は未確認です。公開後は [実機チェックリスト](docs/phase6-iphone-checklist.md) と以下を確認してください。
+
+- 公開URLのHTML、CSS、各JS、4曲M4A、manifest、アイコン、sw.jsが404にならない。
+- 全モード、PC／スマホUI、複数指操作、音響、武器リセットが動く。
+- DevToolsでworkerが公開リポジトリのscopeだけを制御し、別プロジェクトを制御しない。
+- 更新を公開→タブを閉じて再起動して新ビルドを取得し、同一originの音量・記録が保持される。
+- iPhoneのホーム画面起動、セーフエリア、背景停止／復帰、実聴を確認する。
+
+設定は [GitHub公式のPagesワークフロー手順](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages) に基づきます。
